@@ -66,13 +66,9 @@ public class DefaultEurekaServerConfig implements EurekaServerConfig {
     private static final String ARCHAIUS_DEPLOYMENT_ENVIRONMENT = "archaius.deployment.environment";
     private static final String TEST = "test";
     private static final String EUREKA_ENVIRONMENT = "eureka.environment";
-    private static final Logger logger = LoggerFactory
-            .getLogger(DefaultEurekaServerConfig.class);
-    private static final DynamicPropertyFactory configInstance = com.netflix.config.DynamicPropertyFactory
-            .getInstance();
-    private static final DynamicStringProperty EUREKA_PROPS_FILE = DynamicPropertyFactory
-            .getInstance().getStringProperty("eureka.server.props",
-                    "eureka-server");
+    private static final Logger logger = LoggerFactory.getLogger(DefaultEurekaServerConfig.class);
+    private static final DynamicPropertyFactory configInstance = com.netflix.config.DynamicPropertyFactory.getInstance();
+    private static final DynamicStringProperty EUREKA_PROPS_FILE = DynamicPropertyFactory.getInstance().getStringProperty("eureka.server.props", "eureka-server");
     private static final int TIME_TO_WAIT_FOR_REPLICATION = 30000;
 
     private String namespace = "eureka.";
@@ -102,21 +98,19 @@ public class DefaultEurekaServerConfig implements EurekaServerConfig {
     }
 
     private void init() {
-        String env = ConfigurationManager.getConfigInstance().getString(
-                EUREKA_ENVIRONMENT, TEST);
-        ConfigurationManager.getConfigInstance().setProperty(
-                ARCHAIUS_DEPLOYMENT_ENVIRONMENT, env);
+        // todo 获取环境
+        String env = ConfigurationManager.getConfigInstance().getString(EUREKA_ENVIRONMENT, TEST);
+
+        ConfigurationManager.getConfigInstance().setProperty(ARCHAIUS_DEPLOYMENT_ENVIRONMENT, env);
 
         String eurekaPropsFile = EUREKA_PROPS_FILE.get();
         try {
             // ConfigurationManager
             // .loadPropertiesFromResources(eurekaPropsFile);
-            ConfigurationManager
-                    .loadCascadedPropertiesFromResources(eurekaPropsFile);
+            ConfigurationManager.loadCascadedPropertiesFromResources(eurekaPropsFile);
         } catch (IOException e) {
-            logger.warn(
-                    "Cannot find the properties specified : {}. This may be okay if there are other environment "
-                            + "specific properties or the configuration is installed with a different mechanism.",
+            logger.warn("Cannot find the properties specified : {}. " +
+                            "This may be okay if there are other environment specific properties or the configuration is installed with a different mechanism.",
                     eurekaPropsFile);
         }
     }
@@ -229,22 +223,18 @@ public class DefaultEurekaServerConfig implements EurekaServerConfig {
      */
     @Override
     public int getExpectedClientRenewalIntervalSeconds() {
-        final int configured = configInstance.getIntProperty(
-                namespace + "expectedClientRenewalIntervalSeconds",
-                30).get();
+        final int configured = configInstance.getIntProperty(namespace + "expectedClientRenewalIntervalSeconds", 30).get();
         return configured > 0 ? configured : 30;
     }
 
     @Override
     public double getRenewalPercentThreshold() {
-        return configInstance.getDoubleProperty(
-                namespace + "renewalPercentThreshold", 0.85).get();
+        return configInstance.getDoubleProperty(namespace + "renewalPercentThreshold", 0.85).get();
     }
 
     @Override
     public boolean shouldEnableReplicatedRequestCompression() {
-        return configInstance.getBooleanProperty(
-                namespace + "enableReplicatedRequestCompression", false).get();
+        return configInstance.getBooleanProperty(namespace + "enableReplicatedRequestCompression", false).get();
     }
 
     @Override

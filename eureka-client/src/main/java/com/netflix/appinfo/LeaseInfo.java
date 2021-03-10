@@ -25,10 +25,9 @@ import com.thoughtworks.xstream.annotations.XStreamOmitField;
  * Represents the <em>lease</em> information with <em>Eureka</em>.
  *
  * <p>
- * <em>Eureka</em> decides to remove the instance out of its view depending on
- * the duration that is set in
- * {@link EurekaInstanceConfig#getLeaseExpirationDurationInSeconds()} which is
- * held in this lease. The lease also tracks the last time it was renewed.
+ * <em>Eureka</em> decides to remove the instance out of its view depending on the duration that is set in
+ * {@link EurekaInstanceConfig#getLeaseExpirationDurationInSeconds()} which is held in this lease.
+ * The lease also tracks the last time it was renewed.
  * </p>
  *
  * @author Karthik Ranganathan, Greg Kim

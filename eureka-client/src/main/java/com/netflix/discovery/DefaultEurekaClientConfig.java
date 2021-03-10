@@ -35,8 +35,7 @@ import static com.netflix.discovery.PropertyBasedClientConfigConstants.*;
 
 /**
  *
- * A default implementation of eureka client configuration as required by
- * {@link EurekaClientConfig}.
+ * A default implementation of eureka client configuration as required by {@link EurekaClientConfig}.
  *
  * <p>
  * The information required for configuring eureka client is provided in a
@@ -55,6 +54,7 @@ import static com.netflix.discovery.PropertyBasedClientConfigConstants.*;
  *
  * @author Karthik Ranganathan
  *
+ * todo eureka 客户端配置
  */
 @Singleton
 @ProvidedBy(DefaultEurekaClientConfigProvider.class)
@@ -77,9 +77,7 @@ public class DefaultEurekaClientConfig implements EurekaClientConfig {
     }
 
     public DefaultEurekaClientConfig(String namespace) {
-        this.namespace = namespace.endsWith(".")
-                ? namespace
-                : namespace + ".";
+        this.namespace = namespace.endsWith(".") ? namespace : namespace + ".";
 
         this.configInstance = Archaius1Utils.initConfig(CommonConstants.CONFIG_FILE_NAME);
         this.transportConfig = new DefaultEurekaTransportConfig(namespace, configInstance);

@@ -128,25 +128,33 @@ public class DiscoveryClient implements EurekaClient {
     @Deprecated
     private static EurekaClientConfig staticClientConfig;
 
-    // Timers
+    // todo Timers
     private static final String PREFIX = "DiscoveryClient_";
     private final Counter RECONCILE_HASH_CODES_MISMATCH = Monitors.newCounter(PREFIX + "ReconcileHashCodeMismatch");
-    private final com.netflix.servo.monitor.Timer FETCH_REGISTRY_TIMER = Monitors
-            .newTimer(PREFIX + "FetchRegistry");
-    private final Counter REREGISTER_COUNTER = Monitors.newCounter(PREFIX
-            + "Reregister");
+    private final com.netflix.servo.monitor.Timer FETCH_REGISTRY_TIMER = Monitors.newTimer(PREFIX + "FetchRegistry");
+    private final Counter REREGISTER_COUNTER = Monitors.newCounter(PREFIX + "Reregister");
 
     // instance variables
     /**
      * A scheduler to be used for the following 3 tasks:
      * - updating service urls
      * - scheduling a TimedSuperVisorTask
+     * todo 调度器有三个作用
+     *      todo 更新服务路径
+     *      todo
      */
     private final ScheduledExecutorService scheduler;
     // additional executors for supervised subtasks
+    // todo 心跳执行器
     private final ThreadPoolExecutor heartbeatExecutor;
+    // todo 缓存刷新执行器
     private final ThreadPoolExecutor cacheRefreshExecutor;
 
+    /**
+     * todo ------ 任务 ------
+     * todo 缓存刷新任务
+     * todo 心跳任务
+     */
     private TimedSupervisorTask cacheRefreshTask;
     private TimedSupervisorTask heartbeatTask;
 
@@ -333,7 +341,8 @@ public class DiscoveryClient implements EurekaClient {
             this.healthCheckHandlerProvider = null;
             this.preRegistrationHandler = null;
         }
-        
+
+        // todo 将实例信息、配置信息保存到本地
         this.applicationInfoManager = applicationInfoManager;
         InstanceInfo myInfo = applicationInfoManager.getInfo();
 
@@ -350,19 +359,24 @@ public class DiscoveryClient implements EurekaClient {
         this.backupRegistryProvider = backupRegistryProvider;
         this.endpointRandomizer = endpointRandomizer;
         this.urlRandomizer = new EndpointUtils.InstanceInfoBasedUrlRandomizer(instanceInfo);
+
+        // todo 设置 Applications
         localRegionApps.set(new Applications());
 
         fetchRegistryGeneration = new AtomicLong(0);
 
+        // todo 从远程拉取注册表的地址数组，使用的原子类，在运行中可能会动态更新地址
         remoteRegionsToFetch = new AtomicReference<String>(clientConfig.fetchRegistryForRemoteRegions());
         remoteRegionsRef = new AtomicReference<>(remoteRegionsToFetch.get() == null ? null : remoteRegionsToFetch.get().split(","));
 
+        // todo 如果要获取注册表，就会注册状态监视器
         if (config.shouldFetchRegistry()) {
             this.registryStalenessMonitor = new ThresholdLevelsMetric(this, METRIC_REGISTRY_PREFIX + "lastUpdateSec_", new long[]{15L, 30L, 60L, 120L, 240L, 480L});
         } else {
             this.registryStalenessMonitor = ThresholdLevelsMetric.NO_OP_METRIC;
         }
 
+        // todo 如果要注册到 eureka-server，就会创建心跳状态监视器
         if (config.shouldRegisterWithEureka()) {
             this.heartbeatStalenessMonitor = new ThresholdLevelsMetric(this, METRIC_REGISTRATION_PREFIX + "lastHeartbeatSec_", new long[]{15L, 30L, 60L, 120L, 240L, 480L});
         } else {
@@ -371,6 +385,7 @@ public class DiscoveryClient implements EurekaClient {
 
         logger.info("Initializing Eureka in region {}", clientConfig.getRegion());
 
+        // todo 如果不注册到注册中心，且不拉取注册表，就不创建调度器、线程池等资源了
         if (!config.shouldRegisterWithEureka() && !config.shouldFetchRegistry()) {
             logger.info("Client configured to neither register nor query for data.");
             scheduler = null;
@@ -395,12 +410,15 @@ public class DiscoveryClient implements EurekaClient {
 
         try {
             // default size of 2 - 1 each for heartbeat and cacheRefresh
+            // todo 创建定时调度器，默认有2个核心线程，主要处理心跳任务和缓存刷新任务
             scheduler = Executors.newScheduledThreadPool(2,
                     new ThreadFactoryBuilder()
                             .setNameFormat("DiscoveryClient-%d")
                             .setDaemon(true)
                             .build());
 
+            // todo 维持心跳的线程池，一个核心线程，最大线程数默认5。
+            // todo 注意其使用的队列是 SynchronousQueue 队列，这个队列只能放一个任务，一个线程将任务取走后，才能放入下一个任务，否则只能阻塞。
             heartbeatExecutor = new ThreadPoolExecutor(
                     1, clientConfig.getHeartbeatExecutorThreadPoolSize(), 0, TimeUnit.SECONDS,
                     new SynchronousQueue<Runnable>(),
@@ -410,6 +428,7 @@ public class DiscoveryClient implements EurekaClient {
                             .build()
             );  // use direct handoff
 
+            // todo 刷新缓存的线程池，一个核心线程，最大线程数据默认为 5
             cacheRefreshExecutor = new ThreadPoolExecutor(
                     1, clientConfig.getCacheRefreshExecutorThreadPoolSize(), 0, TimeUnit.SECONDS,
                     new SynchronousQueue<Runnable>(),
@@ -419,7 +438,9 @@ public class DiscoveryClient implements EurekaClient {
                             .build()
             );  // use direct handoff
 
+            // todo eureka http 调用客户端，支持 eureka client 与 eureka server 之间的通信
             eurekaTransport = new EurekaTransport();
+            // todo 初始化 eurekaTransport
             scheduleServerEndpointTask(eurekaTransport, args);
 
             AzToRegionMapper azToRegionMapper;
@@ -438,6 +459,7 @@ public class DiscoveryClient implements EurekaClient {
 
         if (clientConfig.shouldFetchRegistry()) {
             try {
+                // todo 拉取注册表：全量抓取和增量抓取
                 boolean primaryFetchRegistryResult = fetchRegistry(false);
                 if (!primaryFetchRegistryResult) {
                     logger.info("Initial registry fetch from primary servers failed");
@@ -473,6 +495,7 @@ public class DiscoveryClient implements EurekaClient {
         }
 
         // finally, init the schedule tasks (e.g. cluster resolvers, heartbeat, instanceInfo replicator, fetch
+        // todo 初始化一些调度任务：刷新缓存的调度任务、发送心跳的调度任务、实例副本传播器
         initScheduledTasks();
 
         try {
@@ -1295,12 +1318,17 @@ public class DiscoveryClient implements EurekaClient {
 
     /**
      * Initializes all scheduled tasks.
+     * todo 初始化所有计划任务
      */
     private void initScheduledTasks() {
         if (clientConfig.shouldFetchRegistry()) {
             // registry cache refresh timer
+            // todo 抓取注册表的间隔时间，默认30秒
             int registryFetchIntervalSeconds = clientConfig.getRegistryFetchIntervalSeconds();
+            // todo 刷新缓存调度器延迟时间扩大倍数，在任务超时的时候，将扩大延迟时间
+            // todo 这在出现网络抖动、eureka-sever 不可用时，可以避免频繁发起无效的调度
             int expBackOffBound = clientConfig.getCacheRefreshExecutorExponentialBackOffBound();
+            // todo 注册表刷新的定时任务
             cacheRefreshTask = new TimedSupervisorTask(
                     "cacheRefresh",
                     scheduler,
@@ -1310,17 +1338,19 @@ public class DiscoveryClient implements EurekaClient {
                     expBackOffBound,
                     new CacheRefreshThread()
             );
-            scheduler.schedule(
-                    cacheRefreshTask,
-                    registryFetchIntervalSeconds, TimeUnit.SECONDS);
+            // todo 30秒后开始调度刷新注册表的任务
+            scheduler.schedule(cacheRefreshTask, registryFetchIntervalSeconds, TimeUnit.SECONDS);
         }
 
         if (clientConfig.shouldRegisterWithEureka()) {
+            // todo 续约间隔时间，默认30秒
             int renewalIntervalInSecs = instanceInfo.getLeaseInfo().getRenewalIntervalInSecs();
+            // todo 心跳调度器的延迟时间扩大倍数，默认10
             int expBackOffBound = clientConfig.getHeartbeatExecutorExponentialBackOffBound();
             logger.info("Starting heartbeat executor: " + "renew interval is: {}", renewalIntervalInSecs);
 
             // Heartbeat timer
+            // todo 心跳的定时任务
             heartbeatTask = new TimedSupervisorTask(
                     "heartbeat",
                     scheduler,
@@ -1330,17 +1360,20 @@ public class DiscoveryClient implements EurekaClient {
                     expBackOffBound,
                     new HeartbeatThread()
             );
+            // todo 30秒后开始调度心跳的任务
             scheduler.schedule(
                     heartbeatTask,
                     renewalIntervalInSecs, TimeUnit.SECONDS);
 
             // InstanceInfo replicator
+            // todo 实例副本传播器，用于定时更新自己状态
             instanceInfoReplicator = new InstanceInfoReplicator(
                     this,
                     instanceInfo,
                     clientConfig.getInstanceInfoReplicationIntervalSeconds(),
                     2); // burstSize
 
+            // todo 实例状态变更的监听器
             statusChangeListener = new ApplicationInfoManager.StatusChangeListener() {
                 @Override
                 public String getId() {
@@ -1350,14 +1383,17 @@ public class DiscoveryClient implements EurekaClient {
                 @Override
                 public void notify(StatusChangeEvent statusChangeEvent) {
                     logger.info("Saw local status change event {}", statusChangeEvent);
+                    // todo 通知重新注册实例
                     instanceInfoReplicator.onDemandUpdate();
                 }
             };
 
+            // todo 向 ApplicationInfoManager 注册监听器
             if (clientConfig.shouldOnDemandUpdateStatusChange()) {
                 applicationInfoManager.registerStatusChangeListener(statusChangeListener);
             }
 
+            // todo 启动副本传播器，默认延迟时间40秒
             instanceInfoReplicator.start(clientConfig.getInitialInstanceInfoReplicationIntervalSeconds());
         } else {
             logger.info("Not registering with Eureka server per configuration");

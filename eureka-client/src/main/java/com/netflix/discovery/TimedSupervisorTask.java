@@ -45,12 +45,16 @@ public class TimedSupervisorTask extends TimerTask {
         this.name = name;
         this.scheduler = scheduler;
         this.executor = executor;
+        // todo 任务超时时间就等于任务调度的间隔时间
         this.timeoutMillis = timeUnit.toMillis(timeout);
         this.task = task;
+        // todo 延迟时间默认为超时时间
         this.delay = new AtomicLong(timeoutMillis);
+        // todo 最大延迟时间，默认在超时时间的基础上扩大10倍
         this.maxDelay = timeoutMillis * expBackOffBound;
 
         // Initialize the counters and register.
+        // todo 初始化计数器并注册
         successCounter = Monitors.newCounter("success");
         timeoutCounter = Monitors.newCounter("timeouts");
         rejectedCounter = Monitors.newCounter("rejectedExecutions");
@@ -63,18 +67,25 @@ public class TimedSupervisorTask extends TimerTask {
     public void run() {
         Future<?> future = null;
         try {
+            // todo 提交任务到线程池
             future = executor.submit(task);
             threadPoolLevelGauge.set((long) executor.getActiveCount());
+            // todo 阻塞直到任务完成或超时
             future.get(timeoutMillis, TimeUnit.MILLISECONDS);  // block until done or timeout
+            // todo 任务完成后，重置延迟时间为超时时间，即30秒
             delay.set(timeoutMillis);
             threadPoolLevelGauge.set((long) executor.getActiveCount());
+            // todo 成功次数 +1
             successCounter.increment();
         } catch (TimeoutException e) {
             logger.warn("task supervisor timed out", e);
+            // todo 超时次数 +1
             timeoutCounter.increment();
 
+            // todo 如果任务超时了，就会增大延迟时间，当前延迟时间*2，然后取一个最大值
             long currentDelay = delay.get();
             long newDelay = Math.min(maxDelay, currentDelay * 2);
+            // todo 设置为最大的一个延迟时间
             delay.compareAndSet(currentDelay, newDelay);
 
         } catch (RejectedExecutionException e) {
@@ -99,6 +110,7 @@ public class TimedSupervisorTask extends TimerTask {
             }
 
             if (!scheduler.isShutdown()) {
+                // todo 延迟 delay 时间后，继续调度任务
                 scheduler.schedule(this, delay.get(), TimeUnit.MILLISECONDS);
             }
         }

@@ -17,11 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * InstanceInfo provider that constructs the InstanceInfo this this instance using
- * EurekaInstanceConfig.
+ * InstanceInfo provider that constructs the InstanceInfo this this instance using EurekaInstanceConfig.
  *
- * This provider is @Singleton scope as it provides the InstanceInfo for both DiscoveryClient
- * and ApplicationInfoManager, and need to provide the same InstanceInfo to both.
+ * This provider is @Singleton scope as it provides the InstanceInfo for both DiscoveryClient and ApplicationInfoManager, and need to provide the same InstanceInfo to both.
  *
  * @author elandau
  *
@@ -46,6 +44,7 @@ public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceI
     public synchronized InstanceInfo get() {
         if (instanceInfo == null) {
             // Build the lease information to be passed to the server based on config
+            // todo 续约信息：主要有续约间隔时间（默认30秒）和续约过期时间（默认90秒）
             LeaseInfo.Builder leaseInfoBuilder = LeaseInfo.Builder.newBuilder()
                     .setRenewalIntervalInSecs(config.getLeaseRenewalIntervalInSeconds())
                     .setDurationInSecs(config.getLeaseExpirationDurationInSeconds());
@@ -55,6 +54,7 @@ public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceI
             }
 
             // Builder the instance information to be registered with eureka server
+            // todo 基于建造者模式来创建 InstanceInfo
             InstanceInfo.Builder builder = InstanceInfo.Builder.newBuilder(vipAddressResolver);
 
             // set the appropriate id for the InstanceInfo, falling back to datacenter Id if applicable, else hostname
@@ -81,6 +81,7 @@ public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceI
                 defaultAddress = config.getIpAddress();
             }
 
+            // todo 设置属性
             builder.setNamespace(config.getNamespace())
                     .setInstanceId(instanceId)
                     .setAppName(config.getAppname())
@@ -97,8 +98,7 @@ public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceI
                     .setHomePageUrl(config.getHomePageUrlPath(), config.getHomePageUrl())
                     .setStatusPageUrl(config.getStatusPageUrlPath(), config.getStatusPageUrl())
                     .setASGName(config.getASGName())
-                    .setHealthCheckUrls(config.getHealthCheckUrlPath(),
-                            config.getHealthCheckUrl(), config.getSecureHealthCheckUrl());
+                    .setHealthCheckUrls(config.getHealthCheckUrlPath(), config.getHealthCheckUrl(), config.getSecureHealthCheckUrl());
 
 
             // Start off with the STARTING state to avoid traffic
@@ -107,8 +107,9 @@ public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceI
                 LOG.info("Setting initial instance status as: {}", initialStatus);
                 builder.setStatus(initialStatus);
             } else {
-                LOG.info("Setting initial instance status as: {}. This may be too early for the instance to advertise "
-                         + "itself as available. You would instead want to control this via a healthcheck handler.",
+                LOG.info("Setting initial instance status as: {}. " +
+                                "This may be too early for the instance to advertise itself as available. " +
+                                "You would instead want to control this via a healthcheck handler.",
                          InstanceStatus.UP);
             }
 
@@ -122,6 +123,7 @@ public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceI
                 }
             }
 
+            // todo 调用 build 方法做属性校验并创建 InstanceInfo 实例
             instanceInfo = builder.build();
             instanceInfo.setLeaseInfo(leaseInfoBuilder.build());
         }

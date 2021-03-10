@@ -32,8 +32,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 /**
- * Represent the local server context and exposes getters to components of the
- * local server such as the registry.
+ * Represent the local server context and exposes getters to components of the local server such as the registry.
  *
  * @author David Liu
  */
@@ -64,8 +63,10 @@ public class DefaultEurekaServerContext implements EurekaServerContext {
     @Override
     public void initialize() {
         logger.info("Initializing ...");
+        // todo 启动 eureka 集群
         peerEurekaNodes.start();
         try {
+            // todo 注册表初始化
             registry.init(peerEurekaNodes);
         } catch (Exception e) {
             throw new RuntimeException(e);

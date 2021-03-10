@@ -117,11 +117,15 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
         this.serverConfig = serverConfig;
         this.clientConfig = clientConfig;
         this.serverCodecs = serverCodecs;
+        // todo 最近下线的循环队列
         this.recentCanceledQueue = new CircularQueue<Pair<Long, String>>(1000);
+        // todo 最近注册的循环队列
         this.recentRegisteredQueue = new CircularQueue<Pair<Long, String>>(1000);
 
+        // todo 最近一分钟续约的计数器
         this.renewsLastMin = new MeasuredRate(1000 * 60 * 1);
 
+        // todo 一个定时调度任务，定时剔除最近改变队列中过期的实例
         this.deltaRetentionTimer.schedule(getDeltaRetentionTask(),
                 serverConfig.getDeltaRetentionTimerIntervalInMs(),
                 serverConfig.getDeltaRetentionTimerIntervalInMs());

@@ -86,7 +86,7 @@ public class EurekaBootStrap implements ServletContextListener {
     private EurekaClient eurekaClient;
 
     /**
-     * Construct a default instance of Eureka boostrap
+     * Construct a default instance of Eureka bootstrap
      */
     public EurekaBootStrap() {
         this(null);
@@ -110,7 +110,9 @@ public class EurekaBootStrap implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent event) {
         try {
+            // todo 环境初始化
             initEurekaEnvironment();
+            // todo eureka server 上下文初始化
             initEurekaServerContext();
 
             ServletContext sc = event.getServletContext();
@@ -123,10 +125,13 @@ public class EurekaBootStrap implements ServletContextListener {
 
     /**
      * Users can override to initialize the environment themselves.
+     *
+     * todo 初始化 eureka 环境
      */
     protected void initEurekaEnvironment() throws Exception {
         logger.info("Setting the eureka configuration..");
 
+        // todo 设置数据中心
         String dataCenter = ConfigurationManager.getConfigInstance().getString(EUREKA_DATACENTER);
         if (dataCenter == null) {
             logger.info("Eureka data center value eureka.datacenter is not set, defaulting to default");
@@ -134,6 +139,8 @@ public class EurekaBootStrap implements ServletContextListener {
         } else {
             ConfigurationManager.getConfigInstance().setProperty(ARCHAIUS_DEPLOYMENT_DATACENTER, dataCenter);
         }
+
+        // todo 设置环境参数
         String environment = ConfigurationManager.getConfigInstance().getString(EUREKA_ENVIRONMENT);
         if (environment == null) {
             ConfigurationManager.getConfigInstance().setProperty(ARCHAIUS_DEPLOYMENT_ENVIRONMENT, TEST);
@@ -143,8 +150,11 @@ public class EurekaBootStrap implements ServletContextListener {
 
     /**
      * init hook for server context. Override for custom logic.
+     *
+     * todo 初始化注册中心
      */
     protected void initEurekaServerContext() throws Exception {
+        // todo 1、eureka 注册中心配置
         EurekaServerConfig eurekaServerConfig = new DefaultEurekaServerConfig();
 
         // For backward compatibility
@@ -158,14 +168,16 @@ public class EurekaBootStrap implements ServletContextListener {
         ApplicationInfoManager applicationInfoManager = null;
 
         if (eurekaClient == null) {
-            EurekaInstanceConfig instanceConfig = isCloud(ConfigurationManager.getDeploymentContext())
-                    ? new CloudInstanceConfig()
-                    : new MyDataCenterInstanceConfig();
-            
-            applicationInfoManager = new ApplicationInfoManager(
-                    instanceConfig, new EurekaConfigBasedInstanceInfoProvider(instanceConfig).get());
-            
+            // todo 2、eureka 实例配置
+            EurekaInstanceConfig instanceConfig = isCloud(ConfigurationManager.getDeploymentContext()) ? new CloudInstanceConfig() : new MyDataCenterInstanceConfig();
+
+            // todo 3、构建 InstanceInfo 实例
+            // todo 4、构造 ApplicationInfoManager 应用管理器
+            applicationInfoManager = new ApplicationInfoManager(instanceConfig, new EurekaConfigBasedInstanceInfoProvider(instanceConfig).get());
+
+            // todo 5、eureka 客户端配置
             EurekaClientConfig eurekaClientConfig = new DefaultEurekaClientConfig();
+            // todo 6、构造 EurekaClient，DiscoveryClient 封装了客户端相关的操作
             eurekaClient = new DiscoveryClient(applicationInfoManager, eurekaClientConfig);
         } else {
             applicationInfoManager = eurekaClient.getApplicationInfoManager();
@@ -182,6 +194,7 @@ public class EurekaBootStrap implements ServletContextListener {
             awsBinder = new AwsBinderDelegate(eurekaServerConfig, eurekaClient.getEurekaClientConfig(), registry, applicationInfoManager);
             awsBinder.start();
         } else {
+            // todo 7、构建 eureka 集群注册表
             registry = new PeerAwareInstanceRegistryImpl(
                     eurekaServerConfig,
                     eurekaClient.getEurekaClientConfig(),
@@ -190,6 +203,7 @@ public class EurekaBootStrap implements ServletContextListener {
             );
         }
 
+        // todo 8、构造eureka-server集群信息
         PeerEurekaNodes peerEurekaNodes = getPeerEurekaNodes(
                 registry,
                 eurekaServerConfig,
@@ -198,6 +212,7 @@ public class EurekaBootStrap implements ServletContextListener {
                 applicationInfoManager
         );
 
+        // todo 9、基于前面构造的对象创建 EurekaServerContext
         serverContext = new DefaultEurekaServerContext(
                 eurekaServerConfig,
                 serverCodecs,
@@ -206,16 +221,23 @@ public class EurekaBootStrap implements ServletContextListener {
                 applicationInfoManager
         );
 
+        // todo 将 serverContext 放到 EurekaServerContextHolder 上下文中，
+        // todo 这样其它地方都可以通过 EurekaServerContextHolder 拿到 EurekaServerContext
         EurekaServerContextHolder.initialize(serverContext);
 
+        // todo 10、初始化 eureka-server 上下文
         serverContext.initialize();
         logger.info("Initialized server context");
 
         // Copy registry from neighboring eureka node
+        // todo 11、从相邻的eureka-server同步注册表
         int registryCount = registry.syncUp();
+        
+        // todo 12、启动注册表，启动一些定时任务
         registry.openForTraffic(applicationInfoManager, registryCount);
 
         // Register all monitoring statistics.
+        // todo 13、注册监控统计
         EurekaMonitors.registerAllStats();
     }
     

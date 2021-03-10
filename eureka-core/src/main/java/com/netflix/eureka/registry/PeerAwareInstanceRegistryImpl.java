@@ -135,6 +135,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
     ) {
         super(serverConfig, clientConfig, serverCodecs);
         this.eurekaClient = eurekaClient;
+        // todo 最近一分钟集群同步的次数计数器
         this.numberOfReplicationsLastMin = new MeasuredRate(1000 * 60 * 1);
         // We first check if the instance is STARTING or DOWN, then we check explicit overrides,
         // then we check the status of a potentially existing lease.
@@ -149,10 +150,14 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
 
     @Override
     public void init(PeerEurekaNodes peerEurekaNodes) throws Exception {
+        // todo 启动计数器
         this.numberOfReplicationsLastMin.start();
         this.peerEurekaNodes = peerEurekaNodes;
+        // todo 初始化响应缓存，eureka server 构造了一个多级缓存来响应客户端抓取注册表的请求
         initializedResponseCache();
+        // todo 定时调度任务更新续约阀值，主要就是更新 numberOfRenewsPerMinThreshold 这个值，即每分钟续约次数
         scheduleRenewalThresholdUpdateTask();
+        // todo 初始化 RemoteRegionRegistry
         initRemoteRegionRegistry();
 
         try {

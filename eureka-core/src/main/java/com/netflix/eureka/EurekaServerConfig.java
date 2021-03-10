@@ -30,8 +30,7 @@ import com.netflix.eureka.aws.AwsBindingStrategy;
  * Most of the required information is provided by the default configuration
  * {@link com.netflix.eureka.DefaultEurekaServerConfig}.
  *
- * Note that all configurations are not effective at runtime unless and
- * otherwise specified.
+ * Note that all configurations are not effective at runtime unless and otherwise specified.
  * </p>
  *
  * @author Karthik Ranganathan
@@ -40,9 +39,8 @@ import com.netflix.eureka.aws.AwsBindingStrategy;
 public interface EurekaServerConfig {
 
     /**
-     * Gets the <em>AWS Access Id</em>. This is primarily used for
-     * <em>Elastic IP Biding</em>. The access id should be provided with
-     * appropriate AWS permissions to bind the EIP.
+     * Gets the <em>AWS Access Id</em>. This is primarily used for <em>Elastic IP Biding</em>.
+     * The access id should be provided with appropriate AWS permissions to bind the EIP.
      *
      * @return
      */
@@ -113,17 +111,15 @@ public interface EurekaServerConfig {
     boolean shouldEnableSelfPreservation();
 
     /**
-     * The minimum percentage of renewals that is expected from the clients in
-     * the period specified by {@link #getRenewalThresholdUpdateIntervalMs()}.
-     * If the renewals drop below the threshold, the expirations are disabled if
-     * the {@link #shouldEnableSelfPreservation()} is enabled.
+     * The minimum percentage of renewals that is expected from the clients in the period specified by {@link #getRenewalThresholdUpdateIntervalMs()}.
+     * If the renewals drop below the threshold, the expirations are disabled if the {@link #shouldEnableSelfPreservation()} is enabled.
      *
      * <p>
      * <em>The changes are effective at runtime.</em>
      * </p>
      *
-     * @return value between 0 and 1 indicating the percentage. For example,
-     *         <code>85%</code> will be specified as <code>0.85</code>.
+     * @return value between 0 and 1 indicating the percentage. For example, <code>85%</code> will be specified as <code>0.85</code>.
+     * todo 默认时间设置 续订最小百分比
      */
     double getRenewalPercentThreshold();
 
@@ -136,12 +132,12 @@ public interface EurekaServerConfig {
     int getRenewalThresholdUpdateIntervalMs();
 
     /**
-     * The interval with which clients are expected to send their heartbeats. Defaults to 30
-     * seconds. If clients send heartbeats with different frequency, say, every 15 seconds, then
-     * this parameter should be tuned accordingly, otherwise, self-preservation won't work as
-     * expected.
+     * The interval with which clients are expected to send their heartbeats.
+     * Defaults to 30 seconds.
+     * If clients send heartbeats with different frequency, say, every 15 seconds, then this parameter should be tuned accordingly, otherwise, self-preservation won't work as expected.
      *
      * @return time in seconds indicating the expected interval
+     * todo 心跳时间间隔
      */
     int getExpectedClientRenewalIntervalSeconds();
 

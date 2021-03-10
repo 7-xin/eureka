@@ -73,6 +73,7 @@ public class PeerEurekaNodes {
     }
 
     public void start() {
+        // todo 单个线程的线程池
         taskExecutor = Executors.newSingleThreadScheduledExecutor(
                 new ThreadFactory() {
                     @Override
@@ -84,6 +85,7 @@ public class PeerEurekaNodes {
                 }
         );
         try {
+            // todo 根据集群地址更新 PeerEurekaNode，PeerEurekaNode 就包含了调度其它注册中心的客户端
             updatePeerEurekaNodes(resolvePeerUrls());
             Runnable peersUpdateTask = new Runnable() {
                 @Override
@@ -96,6 +98,7 @@ public class PeerEurekaNodes {
 
                 }
             };
+            // todo 定时跟新集群信息 PeerEurekaNode，如果有eureka-server不可用了，就可以及时下线，或者新上线了eureka-server，可以及时感知到
             taskExecutor.scheduleWithFixedDelay(
                     peersUpdateTask,
                     serverConfig.getPeerEurekaNodesUpdateIntervalMs(),

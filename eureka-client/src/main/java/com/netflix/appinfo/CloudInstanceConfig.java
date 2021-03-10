@@ -52,6 +52,7 @@ public class CloudInstanceConfig extends PropertiesInstanceConfig implements Ref
     private final RefreshableAmazonInfoProvider amazonInfoHolder;
 
     public CloudInstanceConfig() {
+                            // todo 默认配置空间
         this(CommonConstants.DEFAULT_CONFIG_NAMESPACE);
     }
 
